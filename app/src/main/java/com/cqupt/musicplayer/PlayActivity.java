@@ -15,6 +15,7 @@ import android.widget.TextView;
 import java.util.concurrent.TimeUnit;
 
 public class PlayActivity extends AppCompatActivity {
+    ImageButton imageButton;
 
     private MediaPlayer mediaPlayer;
     private TextView tv_start;
@@ -26,6 +27,7 @@ public class PlayActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_play);
+        imageButton = (ImageButton)findViewById(R.id.bt_media);
         Intent intent = getIntent();
         filename = intent.getStringExtra("name");
         //开始时间
@@ -65,19 +67,24 @@ public class PlayActivity extends AppCompatActivity {
 
     //按钮点击事件
     public void isPlayOrPause(View view){
-        ImageButton imageButton= (ImageButton) view;
+
         //判断音频文件是否为空
         if(mediaPlayer==null){
             //为空则创建音乐文件并播放改变按钮样式
-            if (filename == "a"){
-                mediaPlayer = MediaPlayer.create(this, R.raw.a);
+
+            switch (filename){
+                case "a":
+                    mediaPlayer = MediaPlayer.create(this, R.raw.a);
+                    break;
+                case "b":
+                    mediaPlayer = MediaPlayer.create(this, R.raw.b);
+                    break;
+
+                case "c":
+                    mediaPlayer = MediaPlayer.create(this, R.raw.c);
+                    break;
             }
-            else if (filename == "b"){
-                mediaPlayer = MediaPlayer.create(this, R.raw.b);
-            }
-            else if (filename == "c"){
-                mediaPlayer = MediaPlayer.create(this, R.raw.c);
-            }
+
 
             mediaPlayer.start();
             imageButton.setImageResource(android.R.drawable.ic_media_pause);
