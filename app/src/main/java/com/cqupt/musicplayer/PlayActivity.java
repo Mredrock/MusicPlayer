@@ -1,33 +1,37 @@
 package com.cqupt.musicplayer;
 
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.Menu;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import java.util.concurrent.TimeUnit;
-
 public class PlayActivity extends AppCompatActivity {
-    ImageButton imageButton;
-
+    ImageButton mStartButton, mStopButton;
+    Thread thread = new MyThread();
+    boolean isStop = false;
     private MediaPlayer mediaPlayer;
     private TextView tv_start;
     private TextView tv_end;
-    private SeekBar seekbar;
+    private SeekBar seekbar,seekbar_volme;
     String filename;
-
+    AudioManager mAudioManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_play);
-        imageButton = (ImageButton)findViewById(R.id.bt_media);
+        mStartButton = (ImageButton)findViewById(R.id.bt_media);
+        mStopButton = (ImageButton)findViewById(R.id.imageButton_stop);
+        mStopButton.setOnClickListener(new mStopClick());
+        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        int actualVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+
         Intent intent = getIntent();
         filename = intent.getStringExtra("name");
         //开始时间
@@ -36,10 +40,42 @@ public class PlayActivity extends AppCompatActivity {
         tv_end = (TextView) findViewById(R.id.tv_end);
         //进度条
         seekbar = (SeekBar) findViewById(R.id.seekbar);
+        seekbar_volme = (SeekBar)findViewById(R.id.seekbar_volme);
+        seekbar_volme.setMax(100);
+        seekbar_volme.setProgress(actualVolume);
+
+        seekbar_volme.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            int volme = 0;
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                volme = progress;
+                Log.w("progress", "onProgressChanged: " + progress);
+
+//                actualVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+//                maudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volme, AudioManager.FLAG_SHOW_UI);
+
+                mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC,volme,0);
+//                mAudioManager.setStreamVolume(AudioManager.);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mediaPlayer.setVolume(volme,volme);
+            }
+        });
+
+
+
         //设置监听
         seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+
                 //获取音乐总时间
                 int duration2=mediaPlayer.getDuration()/1000;
                 //获取音乐当前播放的位置
@@ -65,6 +101,15 @@ public class PlayActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if(mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+            mStartButton.setImageResource(R.drawable.paly);
+        }
+    }
+
     //按钮点击事件
     public void isPlayOrPause(View view){
 
@@ -87,36 +132,41 @@ public class PlayActivity extends AppCompatActivity {
 
 
             mediaPlayer.start();
-            imageButton.setImageResource(android.R.drawable.ic_media_pause);
+            mStartButton.setImageResource(R.drawable.pause);
             //获取音乐总时间
             int duration=mediaPlayer.getDuration();
             //将音乐总时间设置为SeekBar的最大值
             seekbar.setMax(duration);
             //线程修改时间值
-            new MyThread().start();
+
+            thread.start();
             //音乐文件正在播放，则暂停并改变按钮样式
         }else if(mediaPlayer.isPlaying()){
             mediaPlayer.pause();
-            imageButton.setImageResource(android.R.drawable.ic_media_play);
+            mStartButton.setImageResource(R.drawable.paly);
         }else{
             //启动播放
             mediaPlayer.start();
-            imageButton.setImageResource(android.R.drawable.ic_media_pause);
+            mStartButton.setImageResource(R.drawable.pause);
         }
     }
 
     //使用线程控制进度条时间
     class MyThread extends Thread{
+        public volatile boolean flag = true;
         @Override
         public void run() {
             super.run();
-            while(seekbar.getProgress()<=seekbar.getMax()){
-                //获取音乐当前播放的位置
-                int position=mediaPlayer.getCurrentPosition();
-                //放入SeekBar中
-                seekbar.setProgress(position);
-            }
+                while(seekbar.getProgress()<=seekbar.getMax()){
+                    {
+                        //获取音乐当前播放的位置
+                        int position=mediaPlayer.getCurrentPosition();
+                        //放入SeekBar中
+                        seekbar.setProgress(position);
+                    }
+                }
         }
+
     }
 
     //计算播放时间
@@ -134,6 +184,14 @@ public class PlayActivity extends AppCompatActivity {
         return null;
     }
 
-
+    class mStopClick implements View.OnClickListener {
+        @Override
+        public void onClick(View v) {
+            if (mediaPlayer.isPlaying()){
+                mediaPlayer.reset();
+                mediaPlayer.release();
+            }
+        }
+    }
 }
 
